@@ -1,11 +1,15 @@
 #!/bin/bash
 set -e
 
-# === CONFIGURATION ===
+
+
+# === DETERMINE BASE PATHS ===
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 BASE_DIR="/opt/devops-ui"
 DOMAIN="vasscomputer.co.in"
-TOKEN_FILE="./github_token.txt"
-REPO_FILE="./repos.txt"
+TOKEN_FILE="${SCRIPT_DIR}/github_token.txt"
+REPO_FILE="${SCRIPT_DIR}/repos.txt"
+
 
 # === LOAD GITHUB TOKEN ===
 if [ ! -f "$TOKEN_FILE" ]; then
