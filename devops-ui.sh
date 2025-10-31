@@ -32,23 +32,27 @@ sudo chown "$USER":"$USER" "$BASE_DIR"
 # === CLONE AND DEPLOY EACH REPO ===
 cd "$BASE_DIR"
 
-while read repo port; do
+while read repo port branch; do
   [ -z "$repo" ] && continue
   echo ""
-  echo "[+] Setting up $repo on port $port"
+  echo "[+] Setting up $repo (branch: $branch) on port $port"
 
-  # Clone or update
-  if [ -d "$repo" ]; then
-    echo "   → Repo exists, pulling latest changes..."
-    cd "$repo" && git pull && cd ..
+  # Clone or update repo
+  if [ -d "$repo/.git" ]; then
+    echo "   → Repo exists, pulling latest from $branch..."
+    cd "$repo"
+    git fetch origin
+    git checkout "$branch" || git checkout -b "$branch" origin/"$branch"
+    git pull origin "$branch"
+    cd ..
   else
-    echo "   → Cloning repository..."
-    git clone https://${USERNAME}:${TOKEN}@github.com/${USERNAME}/${repo}.git
+    echo "   → Cloning repository ($branch branch)..."
+    git clone -b "$branch" https://${USERNAME}:${TOKEN}@github.com/${USERNAME}/${repo}.git
   fi
 
   cd "$repo"
 
-  # Create virtual environment
+  # Create Python virtual environment
   python3 -m venv venv
   source venv/bin/activate
 
@@ -96,7 +100,7 @@ server {
 
 EOF
 
-while read repo port; do
+while read repo port branch; do
   [ -z "$repo" ] && continue
   path="/${repo/-ui/}/"
   cat <<BLOCK | sudo tee -a $NGINX_CONF >/dev/null
@@ -121,7 +125,7 @@ sudo certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos -m admin@${DOMAI
 
 echo ""
 echo "✅ Setup complete! Access your UIs at:"
-while read repo port; do
+while read repo port branch; do
   [ -z "$repo" ] && continue
   echo "   https://${DOMAIN}/${repo/-ui/}/"
 done < "$REPO_FILE"
