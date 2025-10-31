@@ -6,7 +6,7 @@ set -e
 # === DETERMINE BASE PATHS ===
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 BASE_DIR="/opt/devops-ui"
-DOMAIN="vasscomputer.co.in"
+DOMAIN="labs.vasscomputer.co.in"
 TOKEN_FILE="${SCRIPT_DIR}/github_token.txt"
 REPO_FILE="${SCRIPT_DIR}/repos.txt"
 
