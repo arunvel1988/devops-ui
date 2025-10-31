@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-# === CONFIG ===
+# === CONFIGURATION ===
 BASE_DIR="/opt/devops-ui"
 DOMAIN="vasscomputer.co.in"
 TOKEN_FILE="./github_token.txt"
 REPO_FILE="./repos.txt"
 
-# === LOAD GITHUB CREDENTIALS ===
+# === LOAD GITHUB TOKEN ===
 if [ ! -f "$TOKEN_FILE" ]; then
   echo "❌ Token file $TOKEN_FILE not found."
   exit 1
@@ -16,7 +16,7 @@ fi
 source "$TOKEN_FILE"
 
 if [ -z "$USERNAME" ] || [ -z "$TOKEN" ]; then
-  echo "❌ TOKEN or USERNAME missing in $TOKEN_FILE"
+  echo "❌ USERNAME or TOKEN missing in $TOKEN_FILE"
   exit 1
 fi
 
@@ -26,39 +26,41 @@ sudo apt update -y
 sudo apt install -y python3 python3-pip python3-venv nginx git certbot python3-certbot-nginx
 
 # === SETUP DIRECTORY ===
-sudo mkdir -p $BASE_DIR
-sudo chown $USER:$USER $BASE_DIR
+sudo mkdir -p "$BASE_DIR"
+sudo chown "$USER":"$USER" "$BASE_DIR"
 
 # === CLONE AND DEPLOY EACH REPO ===
-cd $BASE_DIR
+cd "$BASE_DIR"
 
 while read repo port; do
   [ -z "$repo" ] && continue
+  echo ""
   echo "[+] Setting up $repo on port $port"
 
-  # Clone private repo
+  # Clone or update
   if [ -d "$repo" ]; then
-    echo "   → Repo $repo already exists, pulling latest..."
-    cd $repo && git pull && cd ..
+    echo "   → Repo exists, pulling latest changes..."
+    cd "$repo" && git pull && cd ..
   else
+    echo "   → Cloning repository..."
     git clone https://${USERNAME}:${TOKEN}@github.com/${USERNAME}/${repo}.git
   fi
 
-  cd $repo
+  cd "$repo"
 
-  # Python virtualenv
+  # Create virtual environment
   python3 -m venv venv
   source venv/bin/activate
 
+  # Install dependencies
   if [ -f "requirements.txt" ]; then
     pip install -r requirements.txt
   fi
-
   deactivate
 
-  # Systemd service
+  # Create systemd service
   SERVICE_FILE="/etc/systemd/system/${repo}.service"
-  echo "[+] Creating service ${repo}.service"
+  echo "[+] Creating systemd service: ${repo}.service"
 
   sudo bash -c "cat > $SERVICE_FILE" <<EOF
 [Unit]
@@ -68,7 +70,7 @@ After=network.target
 [Service]
 User=$USER
 WorkingDirectory=${BASE_DIR}/${repo}
-ExecStart=${BASE_DIR}/${repo}/venv/bin/gunicorn --bind 127.0.0.1:${port} app:app
+ExecStart=${BASE_DIR}/${repo}/venv/bin/gunicorn --bind 127.0.0.1:${port} ${repo}:app
 Restart=always
 
 [Install]
@@ -76,13 +78,14 @@ WantedBy=multi-user.target
 EOF
 
   sudo systemctl daemon-reload
-  sudo systemctl enable ${repo}
-  sudo systemctl restart ${repo}
+  sudo systemctl enable "${repo}.service"
+  sudo systemctl restart "${repo}.service"
 
-  cd $BASE_DIR
+  cd "$BASE_DIR"
 done < "$REPO_FILE"
 
-# === CONFIGURE NGINX ===
+# === CREATE NGINX CONFIGURATION ===
+echo ""
 echo "[+] Creating Nginx config..."
 NGINX_CONF="/etc/nginx/sites-available/devops-ui.conf"
 
@@ -112,11 +115,12 @@ sudo ln -sf $NGINX_CONF /etc/nginx/sites-enabled/devops-ui.conf
 sudo nginx -t && sudo systemctl reload nginx
 
 # === ENABLE HTTPS ===
-echo "[+] Requesting Let's Encrypt SSL certificate..."
-sudo certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos -m admin@${DOMAIN}
+echo ""
+echo "[+] Enabling HTTPS with Let's Encrypt..."
+sudo certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos -m admin@${DOMAIN} || true
 
-echo "✅ Setup complete!"
-echo "Access your UIs at:"
+echo ""
+echo "✅ Setup complete! Access your UIs at:"
 while read repo port; do
   [ -z "$repo" ] && continue
   echo "   https://${DOMAIN}/${repo/-ui/}/"
