@@ -1,0 +1,5 @@
+terraform-ui 5002
+ansible-ui 5003
+linux-ui 5005
+kubernetes-ui 5006
+kafka-ui 5007
