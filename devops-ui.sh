@@ -27,7 +27,7 @@ fi
 # === INSTALL DEPENDENCIES ===
 echo "[+] Installing dependencies..."
 sudo apt update -y
-sudo apt install -y python3 python3-pip python3-venv nginx git certbot python3-certbot-nginx
+sudo apt install -y python3 python3-pip python3-venv nginx git certbot python3-certbot-nginx python3-gunicorn -y
 
 # === SETUP DIRECTORY ===
 sudo mkdir -p "$BASE_DIR"
