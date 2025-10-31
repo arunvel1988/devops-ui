@@ -1,5 +1,5 @@
-terraform-ui 5002
-ansible-ui 5003
-linux-ui 5004
-kubernetes-ui 5005
-kafka-ui 5007
+terraform-ui 5003 main
+ansible-ui 5002 main
+linux-ui 5004 main
+kubernetes-ui 5005 final
+kafka-ui 5007 main
